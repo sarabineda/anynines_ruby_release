@@ -1,0 +1,181 @@
+diff --git a/bosh/ruby-app-release/.final_builds/packages/ruby-2.7/index.yml b/bosh/ruby-app-release/.final_builds/packages/ruby-2.7/index.yml
+index e81b916..698852e 100644
+--- a/bosh/ruby-app-release/.final_builds/packages/ruby-2.7/index.yml
++++ b/bosh/ruby-app-release/.final_builds/packages/ruby-2.7/index.yml
+@@ -3,4 +3,8 @@ builds:
+     version: 65be1e4d2f3bf2f828a861cd17b220492ad5c6680e1a3a320cf1179ed20b8609
+     blobstore_id: 01018e54-715b-44f2-4173-be949907b2b9
+     sha1: sha256:d57feb0df9bbb4af6ba769fcf8cf38647be01aa40dc6b6773c9de35310ace7cd
++  efa5b03ea4036a17c9b38e9bf36322ece6624879f8f64437bc8d1fc68ca87de3:
++    version: efa5b03ea4036a17c9b38e9bf36322ece6624879f8f64437bc8d1fc68ca87de3
++    blobstore_id: daf367d2-4280-4f37-664a-9e9dbbdcb278
++    sha1: sha256:f78a028d7f79581e9b54d35270074345c65bff5bca932bf1ee09696d1ad63ef5
+ format-version: "2"
+diff --git a/bosh/ruby-app-release/config/blobs.yml b/bosh/ruby-app-release/config/blobs.yml
+index 0967ef4..e69de29 100644
+--- a/bosh/ruby-app-release/config/blobs.yml
++++ b/bosh/ruby-app-release/config/blobs.yml
+@@ -1 +0,0 @@
+-{}
+diff --git a/bosh/ruby-app-release/config/final.yml b/bosh/ruby-app-release/config/final.yml
+index db0cd24..4efedfe 100644
+--- a/bosh/ruby-app-release/config/final.yml
++++ b/bosh/ruby-app-release/config/final.yml
+@@ -1,3 +1,5 @@
++---
++name: neda_testapp
+ blobstore:
+   provider: local
+   options:
+diff --git a/bosh/ruby-app-release/config/private.yml b/bosh/ruby-app-release/config/private.yml
+index b39a86e..d9170a9 100644
+--- a/bosh/ruby-app-release/config/private.yml
++++ b/bosh/ruby-app-release/config/private.yml
+@@ -1,3 +1,4 @@
++---
+ blobstore:
+   local:
+     blobstore_path: /tmp/ruby-app-release-blobs
+diff --git a/bosh/ruby-app-release/jobs/rubyweb/spec b/bosh/ruby-app-release/jobs/rubyweb/spec
+index 30092db..fa5eb7e 100644
+--- a/bosh/ruby-app-release/jobs/rubyweb/spec
++++ b/bosh/ruby-app-release/jobs/rubyweb/spec
+@@ -1,15 +1,11 @@
+ ---
+ name: rubyweb
+-
+ templates:
+-  ctl.ebr: tmp/ctl
+-  config.ebr: tmp/config.yml
+-
+-packages:
+-- ruby
+-
++  ctl.erb: bin/ctl
++  config.erb: cfg/config.yml
++packages: ruby-2.7
+ properties:
+-  port:
++  port: 
+     description: "Specify the port for the Web-app to listen on"
+     default: 8080
+   bootstrap:
+diff --git a/bosh/ruby-app-release/jobs/rubyweb/templates/config.erb b/bosh/ruby-app-release/jobs/rubyweb/templates/config.erb
+index f8ee663..2d38d0a 100644
+--- a/bosh/ruby-app-release/jobs/rubyweb/templates/config.erb
++++ b/bosh/ruby-app-release/jobs/rubyweb/templates/config.erb
+@@ -1,16 +1,16 @@
+--
+-
+ port = <%=
+ 
+-port = p("port")
++port = port
+ 
+-if port < 1024 or port > 4000
++if (port < 1025) || (port.eql? 7999)
+   raise "Invalid port number"
+ end
+ 
+-if (port.eql? 8080) || (port.eql? 8081)
+-  raise "Wrong port number"
+-end
++#if (port.eql? 8081) || (port.eql? 8088)
++#  raise "Wrong port number"
++#end
+ 
+-port
+-%>
++if (port.eql? 8080) || (port.eql? 8088)
++  port = 8080
++end
++port %>
+diff --git a/bosh/ruby-app-release/jobs/rubyweb/templates/ctl.erb b/bosh/ruby-app-release/jobs/rubyweb/templates/ctl.erb
+index 18e151a..c866afd 100644
+--- a/bosh/ruby-app-release/jobs/rubyweb/templates/ctl.erb
++++ b/bosh/ruby-app-release/jobs/rubyweb/templates/ctl.erb
+@@ -1,25 +1,20 @@
++#!/bin/bash
++bundle exec ruby app.rb
+ set -e -x
+-
+ RUN_DIR=/var/vcap/sys/run/rubyweb
+ LOG_DIR=/var/vcap/sys/log/rubyweb
+ PIDFILE=${RUN_DIR}/pid
+-
+ case $1 in
+-
+   start)
+     mkdir -p $RUN_DIR $LOG_DIR
+     chown -R vcap:vcap $RUN_DIR $LOG_DIR
+-
+     echo $$ > $PIDFILE
+-
+     cd /var/vcap/packages/rubyweb
+-
+     source /var/vcap/packages/ruby-2.7/bosh/runtime.env
+-    
+     <%= 
+     
+       start_file = p('bootstrap')
+-      if not start_file.empty?
++      if start_file.empty?
+         raise 'No bootstrap file provided'
+       end
+ 
+@@ -28,9 +23,11 @@ case $1 in
+       >>  $LOG_DIR/rubyweb.stdout.log \
+       2>> $LOG_DIR/rubyweb.stderr.log
+     ;;
+-
++  stop)
++    kill -9 `cat $PIDFILE`
++    ;;
+   *)
+     echo "Usage: ctl {start|stop}"
+-
++    ;;
+ esac
+ 
+diff --git a/bosh/ruby-app-release/packages/ruby-2.7/spec.lock b/bosh/ruby-app-release/packages/ruby-2.7/spec.lock
+index 6f775da..548dee6 100644
+--- a/bosh/ruby-app-release/packages/ruby-2.7/spec.lock
++++ b/bosh/ruby-app-release/packages/ruby-2.7/spec.lock
+@@ -1,2 +1,2 @@
+ name: ruby-2.7
+-fingerprint: 65be1e4d2f3bf2f828a861cd17b220492ad5c6680e1a3a320cf1179ed20b8609
++fingerprint: efa5b03ea4036a17c9b38e9bf36322ece6624879f8f64437bc8d1fc68ca87de3
+diff --git a/bosh/ruby-app-release/packages/rubyweb/spec b/bosh/ruby-app-release/packages/rubyweb/spec
+index baf84eb..2810287 100644
+--- a/bosh/ruby-app-release/packages/rubyweb/spec
++++ b/bosh/ruby-app-release/packages/rubyweb/spec
+@@ -5,4 +5,4 @@ files:
+ - ruby-web-app/**/*
+ 
+ dependencies:
+-- ruby-2.3.2
++- ruby-2.7
+diff --git a/bosh/ruby-app-release/unit-tests/Gemfile b/bosh/ruby-app-release/unit-tests/Gemfile
+index 46a1024..affa361 100644
+--- a/bosh/ruby-app-release/unit-tests/Gemfile
++++ b/bosh/ruby-app-release/unit-tests/Gemfile
+@@ -1,5 +1,5 @@
+ source "https://rubygems.org"
+-ruby '2.7.3'
++ruby '2.7.8'
+ source 'https://rubygems.org'
+ 
+ group :development, :test do
+diff --git a/bosh/ruby-app-release/unit-tests/Gemfile.lock b/bosh/ruby-app-release/unit-tests/Gemfile.lock
+index b0accd1..b45a227 100644
+--- a/bosh/ruby-app-release/unit-tests/Gemfile.lock
++++ b/bosh/ruby-app-release/unit-tests/Gemfile.lock
+@@ -34,7 +34,7 @@ DEPENDENCIES
+   yaml (~> 0.2.0)
+ 
+ RUBY VERSION
+-   ruby 2.7.3p183
++   ruby 2.7.8p225
+ 
+ BUNDLED WITH
+    2.1.4

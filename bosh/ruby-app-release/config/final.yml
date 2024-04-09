@@ -1,3 +1,5 @@
+---
+name: neda_testapp
 blobstore:
   provider: local
   options:
