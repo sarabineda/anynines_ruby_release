@@ -1,8 +1,7 @@
-port = <%=
+bundle exec ruby <%=
+port = p("port")
 
-port = port
-
-if (port < 1025) || (port.eql? 7999)
+if (port.eql? 1024) || (port.eql? 7999)
   raise "Invalid port number"
 end
 
@@ -13,4 +12,4 @@ end
 if (port.eql? 8080) || (port.eql? 8088)
   port = 8080
 end
-port %>
+ %>

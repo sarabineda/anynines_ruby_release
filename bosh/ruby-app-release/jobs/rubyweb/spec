@@ -3,7 +3,7 @@ name: rubyweb
 templates:
   ctl.erb: bin/ctl
   config.erb: cfg/config.yml
-packages: ruby-2.7
+packages: ruby-2.6
 properties:
   port: 
     description: "Specify the port for the Web-app to listen on"
